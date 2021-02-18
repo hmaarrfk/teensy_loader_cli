@@ -40,7 +40,7 @@ void usage(const char *err)
 		"Usage: teensy_loader_cli --mcu=<MCU> [-w] [-h] [-n] [-b] [-v] <file.hex>\n"
 		"\t-w : Wait for device to appear\n"
 		"\t-r : Use hard reboot if device not online\n"
-		"\t-s : Use soft reboot if device not online (Teensy3.x only)\n"
+		"\t-s : Use soft reboot if device not online (Teensy 3.x & 4.x)\n"
 		"\t--serial-number=SERIAL_NUMBER : Serial number to use in conjunction with soft reboot (UNIX only).\n"
 		"\t-n : No reboot after programming\n"
 		"\t-b : Boot only, do not program\n"
@@ -104,7 +104,7 @@ int main(int argc, char **argv)
 	if (!code_size) {
 		usage("MCU type must be specified");
 	}
-	printf_verbose("Teensy Loader, Command Line, Version 2.1\n");
+	printf_verbose("Teensy Loader, Command Line, Version 2.1.1\n");
 
 	if (block_size == 512 || block_size == 1024) {
 		write_size = block_size + 64;
@@ -371,8 +371,10 @@ int soft_reboot(void)
 		return 0;
 	}
 
-	char reboot_command = 134;
-	int response = usb_control_msg(serial_handle, 0x21, 0x20, 0, 0, &reboot_command, 1, 10000);
+	//char reboot_command = 134;
+	//int response = usb_control_msg(serial_handle, 0x21, 0x20, 0, 0, &reboot_command, 1, 10000);
+	char reboot_command[] = {0x86, 0x00, 0x00, 0x00, 0x00, 0x00, 0x08};
+	int response = usb_control_msg(serial_handle, 0x21, 0x20, 0, 0, reboot_command, sizeof reboot_command, 10000);
 
 	usb_release_interface(serial_handle, 0);
 	usb_close(serial_handle);
@@ -1113,6 +1115,7 @@ static const struct {
 	{"TEENSY35",   524288,  1024},
 	{"TEENSY36",  1048576,  1024},
 	{"TEENSY40",  2031616,  1024},
+	{"TEENSY41",  8126464,  1024},
 #endif
 	{NULL, 0, 0},
 };
@@ -1181,6 +1184,7 @@ void parse_options(int argc, char **argv)
 		if(strncmp(arg, "-mmcu=", 6) == 0) {
 			read_mcu(strchr(arg, '=') + 1);
 		}
+
 		else if(arg[0] == '-') {
 			if(arg[1] == '-') {
 				char *name = &arg[2];
